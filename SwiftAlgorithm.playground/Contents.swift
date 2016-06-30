@@ -12,6 +12,8 @@ public struct BitSet {
     public typealias Word = UInt64
     private(set) public var words: [Word]
     
+    private let allOnes = ~Word()
+    
     public init(size: Int) {
         precondition(size > 0)
         self.size = size
@@ -50,6 +52,19 @@ public struct BitSet {
         words[j] &= ~m
     }
     
+    public mutating func setAll() {
+        for i in 0..<words.count {
+            words[i] = allOnes
+        }
+        clearUnusedBits()
+    }
+    
+    public mutating func clearAll() {
+        for i in 0..<words.count {
+            words[i] = 0
+        }
+    }
+    
     public func isSet(i: Int) -> Bool {
         let (j, m) = indexOf(i)
         return (words[j] & m) != 0
@@ -78,13 +93,44 @@ public struct BitSet {
         let diff = words.count*N - size  // leftover bits
         if diff > 0 {
             let mask = 1 << Word(63 - diff) //a mask is all 0's, except the highest bit
-            return mask | (mask - 1)  //mask最高位之后全变为1，最高位变0
+            return mask | (mask - 1)  //mask-1最高位之后全变为1，最高位变0,或上mask后最高位也变为1。（低到高是从左往右）
         } else {
-            return ~Word()
+            return allOnes
         }
     }
     
     private mutating func clearUnusedBits() {
-        words[words.count - 1] &= lastWordMask()
+        words[words.count - 1] &= lastWordMask() //mask低位有效，高位为0，words与后低位保持不变，高位为0
     }
+    
+    /*
+     Returns the number of bits that are 1. Time complexity is O(s) where s is
+     the number of 1-bits.
+     */
+    public var cardinality: Int {
+        var count = 0
+        for var x in words {
+            while x != 0 {
+                let y = x & ~(x - 1)  // find lowest 1-bit
+                x = x ^ y             // and erase it
+                count += 1
+            }
+        }
+        return count
+    }
+}
+
+
+private func copyLargest(lhs: BitSet, _ rhs: BitSet) -> BitSet {
+    return (lhs.words.count > rhs.words.count) ? lhs : rhs
+}
+
+public func |(lhs: BitSet, rhs: BitSet) -> BitSet {
+    var out = copyLargest(lhs, rhs)
+    let n = min(lhs.words.count, rhs.words.count)
+    for i in 0..<n {
+        out.words[i] = lhs.words[i] | rhs.words[i]
+    }
+    
+    return out
 }
