@@ -664,7 +664,23 @@ extension SequenceType {
     }
 }
 
+//The method above allows us to find all unique elements in a sequence while still maintaining the original order.
+extension SequenceType where Generator.Element: Hashable {
+    func unique() -> [Generator.Element] {
+        var seen: Set<Generator.Element> = [] // inside closre that we pass to filter, we refer to the seen: we can access and modify it within the closure
+        return filter {
+            if seen.contains($0) {
+                return false
+            } else {
+                seen.insert($0)
+                return true
+            }
+        }
+    }
+}
+
 extension Array {
+    // 累加
     func accumulate<U>(initial: U, combine: (U, Element)  -> U) -> [U] {
         var running = initial
         return self.map { next in
@@ -705,6 +721,23 @@ extension Array {
     }
 }
 
+extension Dictionary {
+    mutating func merge<S: SequenceType where S.Generator.Element == (Key, Value)>(other: S) {
+        for (k, v) in other {
+            self[k] = v
+        }
+    }
+    init<S: SequenceType where S.Generator.Element == (Key, Value)>(_ sequence: S) {
+        self = [:]
+        self.merge(sequence)
+    }
+    func mapValues<NewValue>(transform: Value->NewValue) -> [Key: NewValue] {
+        return Dictionary<Key, NewValue>(map{(key,value)in
+            return (key,transform(value))
+            })
+    }
+}
+
 let fibs = [0,1,1,2,3,5]
 let objc = fibs.accumulate(0, combine: +)
 let objc2 = fibs.myMap{ $0 * $0 }.myFilter2{ $0 % 2 == 0 }
@@ -728,4 +761,122 @@ let allCombinations = suits.flatMap{ suit in
     element in
     print("\(element)")
 }
+
+let defaultSettings: [String: AnyObject] = [
+    "Airplane Mode": true,
+    "Name": "My iPhone",
+]
+
+var localizedSettings = defaultSettings
+localizedSettings["Name"] = "Mein iPhone"
+localizedSettings["Do Not Disturb"] = true
+let oldName = localizedSettings.updateValue("My iPhone", forKey: "Name")
+
+var settings = defaultSettings
+settings.merge(localizedSettings)
+
+let defaultAlarms = (1..<5).map{("Alarm\($0)",false)}
+let alarmsDictonary = Dictionary(defaultAlarms)
+//let keysAndViews = settings.mapValues{$0.settingsView()}
+
+// GeneratorType 我们可以随意去复制generator类型的值，但是生成器是单向访问的，我们只能遍历它一次。
+//因此生成器没有值语义，我们通常用类Class而不是结构体Struct来实现它。
+class ConstantGenerator: GeneratorType {
+//    typealias Element = Int   // specified the Element type explicitly
+//    func next() -> Element? {
+//        return 1
+//    }
+    func next() -> Int? { // specified the Element type implicitly
+        return 1
+    }
+}
+
+class FibsGenerator: GeneratorType {
+    var state = (0,1)
+    func next() -> Int? {
+        let upcomingNumber = state.0
+        state = (state.1, state.0+state.1)
+        return upcomingNumber
+    }
+}
+
+var HEHfibs = FibsGenerator()
+while let x = HEHfibs.next() where x < 100 {
+    print(x)
+}
+
+class PrefixGenerator: GeneratorType {
+    let string: String
+    var offset: String.Index
+    init(string: String) {
+        self.string = string
+        offset = string.startIndex
+    }
+    
+    func next() -> String? {
+        guard offset < string.endIndex else { return nil }
+        offset = offset.successor()
+        return string[string.startIndex..<offset]
+    }
+}
+
+let hehesb = PrefixGenerator(string: "nimendoushidashabi")
+while let y = hehesb.next() {
+    print(y)
+}
+
+// AnyGenerator type, in Swift 2.2,it switched back to being a struct.
+// But is a struct that does not have value semantics,because it stores the generator it wraps in a box reference type.
+let seq = 0.stride(to: 9, by: 1)
+var g1 = seq.generate()
+g1.next()
+g1.next()
+// g1 is now a generator ready to return 2
+var g2 = g1   // This is because StrideToGenerator,a pretty simple struct,has value semantics
+g1.next() //2
+g1.next() //3
+g2.next() //2
+g2.next() //3
+
+var g3 = AnyGenerator(g1)
+g3.next()  //4
+g1.next()  // want 5 but 4
+g3.next()  // 5
+g3.next()  // 6
+// try to avoid making copies of generators. Always create a fresh generator when need one.
+
+struct PrefixSequence: SequenceType {
+    let string: String
+    func generate() -> PrefixGenerator {
+        return PrefixGenerator(string: string)
+    }
+}
+
+//for prefix in PrefixSequence(string: "Hello") {
+//    print(prefix)
+//}
+let generat = PrefixSequence(string: "Hello").generate()
+while let prefix = generat.next() {
+    print(prefix)
+}
+
+func fibGenerator_1() -> AnyGenerator<Int> {
+    var state = (0,1)
+    return AnyGenerator{
+        let result = state.0
+        state = (state.0, state.0+state.1)
+        return result
+    }
+}
+/**
+ *  Enqueue and dequeue that both should operate in constant(O(1))time.
+ */
+protocol QueueType {
+    associatedtype Element
+    mutating func enqueue(newElement: Element)
+    mutating func dequeue() -> Element?
+}
+
+
+
 
