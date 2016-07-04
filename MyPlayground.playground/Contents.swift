@@ -877,6 +877,73 @@ protocol QueueType {
     mutating func dequeue() -> Element?
 }
 
+struct Queue<Element>: QueueType {
+    private var left: [Element]
+    private var right: [Element]
+    init() {
+        left = []
+        right = []
+    }
+    /**
+     Add an element to the back of the queue in O(1)
+     */
+    mutating func enqueue(newElement: Element) {
+        right.append(newElement)
+    }
+    /**
+     Removes front of the queue in amortized O(1)
+     
+     - returns: nil in case of an empty queue or element
+     */
+    mutating func dequeue() -> Element? {
+        guard !(left.isEmpty && right.isEmpty) else { return nil }
+        
+        if left.isEmpty {
+            left = right.reverse()
+            right.removeAll(keepCapacity: true)
+        }
+        
+        return left.removeLast()
+    }
+}
 
+extension Queue: CollectionType {
+    var startIndex: Int { return 0 }
+    var endIndex: Int { return left.count + right.count }
+    
+    subscript(idx: Int) -> Element {
+        precondition((0..<endIndex).contains(idx), "Index out of bounds")
+        if idx < left.endIndex {
+            return left[left.count - idx.successor()]
+        } else {
+            return right[idx - left.count]
+        }
+    }
+}
+
+extension Queue: ArrayLiteralConvertible {
+    init(arrayLiteral elements: Element...) {
+        self.left = elements.reverse()
+        self.right = []
+    }
+}
+
+var q = Queue<String>()
+for x in ["1","2","foo","3"] {
+    q.enqueue(x)
+}
+
+for s in q { print(s) }
+q.joinWithSeparator(",")
+let a = Array(q)
+q.map { $0.uppercaseString }
+q.flatMap{ Int($0) }
+q.dequeue()
+print("queue index 2 is \(q[2])")
+q.isEmpty
+q.count
+q.first
+q.last
+q.startIndex
 
 
