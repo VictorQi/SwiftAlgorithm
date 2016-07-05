@@ -928,6 +928,17 @@ extension Queue: ArrayLiteralConvertible {
     }
 }
 
+extension Queue: RangeReplaceableCollectionType {
+    mutating func reserveCapacity(n: Int) {
+        return
+    }
+    mutating func replaceRange<C : CollectionType where C.Generator.Element == Element>(subRange: Range<Int>, with newElements: C) {
+        right = left.reverse() + right
+        left.removeAll(keepCapacity: true)
+        right.replaceRange(subRange, with: newElements)
+    }
+}
+
 var q = Queue<String>()
 for x in ["1","2","foo","3"] {
     q.enqueue(x)
@@ -945,5 +956,80 @@ q.count
 q.first
 q.last
 q.startIndex
+
+
+/**
+ *  forward-only access collection -- singlely linked list.We use an indirect enum.
+ *  递归枚举
+ */
+enum List<Element> {
+    case End
+    indirect case Node(Element, next: List<Element>)  // indirect means this value here is a reference
+}
+
+protocol StackType {
+    associatedtype Element
+    /**
+     Pushes 'x' onto the top of 'self'
+     
+     - Complexity: Amortized O(1)
+     */
+    mutating func push(x: Element)
+    /**
+     Removes the topmost element of 'self' and returen it,
+     or 'nil' if 'self' is empty.
+     
+     - Complexity: O(1)
+     */
+    mutating func pop() -> Element?
+}
+
+extension List: StackType {
+    // return a new list by prepending(前置) a node with value 'x' to 
+    // the front of a list.
+    func cons(x: Element) -> List {
+        return .Node(x, next: self)
+    }
+    
+    // These mutaing method don't change the list.They just change the part of the list the variables refer to.
+    mutating func push(x: Element) {
+        self = self.cons(x)
+    }
+    
+    mutating func pop() -> Element? {
+        switch self {
+        case .End: return nil
+        case let .Node(x, next: xs):
+            self = xs
+            return x
+        }
+    }
+}
+
+// a 3-element list, of (3,2,1) 
+// it is "persistent".Nodes are immutable - once create, you can not change them.
+// Consing another element onto list doesn't copy the list; it just gives you a new node 
+// that links onto the front of the existing list.
+// This means two lists can share a tail.
+let l = List<Int>.End.cons(1).cons(2).cons(3)
+
+var listStack = List<Int>.End.cons(1).cons(2).cons(3)
+var aList = listStack
+var bList = listStack
+
+aList.pop()
+aList.pop()
+aList.pop()
+
+listStack.pop()
+listStack.push(4)
+
+bList.pop()
+bList.pop()
+bList.pop()
+
+listStack.pop()
+listStack.pop()
+listStack.pop()
 
 
