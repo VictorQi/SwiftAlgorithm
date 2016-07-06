@@ -2,7 +2,525 @@
 
 import UIKit
 
-var str = "Hello, playground"
+// MARK: Swift Language
+
+/**
+ *  嵌套函数
+ */
+
+func chooseStepFunction(backwards: Bool) -> (Int) -> Int {
+    func stepForwards(Input: Int) -> Int {return Input+1}
+    func stepBackwards(Input: Int) -> Int {return Input-1}
+    return backwards ? stepBackwards : stepForwards
+}
+
+var currentValue = -4
+let moveFunc = chooseStepFunction(currentValue>0)
+while currentValue != 0 {
+    print("current value is \(currentValue)")
+    currentValue = moveFunc(currentValue)
+}
+print("current value is 0")
+
+
+/**
+ *  函数闭包
+ */
+let names = ["Chris", "Alex", "Ewa", "Barry", "Daniella"]
+//闭包表达式语法
+//var reverse = names.sort({ (s1: String, s2: String) -> Bool in return s1 > s2 })
+//根据上下文推断类型
+//var reverse = names.sort({ s1, s2 in return s1 > s2})
+//单表达式隐式返回
+//var reverse = names.sort({ s1, s2 in s1 > s2})
+//运算符函数
+//var reverse = names.sort(>)
+//参数名称缩写，in关键字也被省略，因为此时闭包表达式完全由函数体组成
+//var reverse = names.sort({ $0 > $1 })
+//尾随闭包
+var reverse = names.sort() { $0 > $1 }  //或者 var reverse = names.sort { $0 > $1 }
+for name in reverse {
+    print("\(name)")
+}
+
+let digitNames = [
+    0: "Zero", 1: "One", 2: "Two", 3: "Three",
+    4: "Four", 5: "Five", 6: "Six", 7: "Seven",
+    8: "Eight", 9: "Nine"
+]
+
+let numbers = [168, 57, 320]
+
+let strings = numbers.map {
+    (var number) -> String in
+    var outPut = ""
+    while number > 0 {
+        outPut = digitNames[number % 10]! + outPut
+        number /= 10
+    }
+    return outPut
+}
+
+class Vehicle {
+    var numberOfWheels = 0
+    var description: String {
+        return "\(numberOfWheels) wheel(s)";
+    }
+}
+
+let vehicle = Vehicle()
+print("Vehicle: \(vehicle.description)")
+
+class Bicycle: Vehicle {
+    override init() {
+        super.init()
+        numberOfWheels = 2
+    }
+}
+
+let bycle = Bicycle()
+print("Bicycle: \(bycle.numberOfWheels)")
+
+class Food {
+    var name: String
+    init (name: String) {
+        self.name = name
+    }
+    convenience init () {
+        self.init(name: "[Unnamed]")
+    }
+}
+
+let nameMeat = Food(name: "Bacon")
+let mysteryMeat = Food()
+
+class RecipeIngredient: Food {
+    var quatity: Int
+    init (name: String, quatity: Int) {
+        self.quatity = quatity
+        super.init(name: name)
+    }
+    convenience override init(name: String) {
+        self.init (name: name, quatity: 1)
+    }
+}
+
+let oneMeat = RecipeIngredient()
+let twoMeat = RecipeIngredient(name: "Pork")
+let threeMeat = RecipeIngredient(name: "Eggs", quatity: 6)
+
+class FoodList: RecipeIngredient {
+    var purchased = false
+    var description: String {
+        var output = "\(quatity) x \(name)"
+        output += purchased ? "✓" : "𐄂"
+        return output
+    }
+}
+
+var breakfastList = [
+    FoodList(),
+    FoodList(name: "Bacon"),
+    FoodList(name: "Egg", quatity: 5)
+]
+
+breakfastList[0].name = "Orange juice"
+breakfastList[0].purchased = true
+for item in breakfastList {
+    print(item.description)
+}
+
+struct Animal {
+    let species: String
+    init?(species: String) {
+        if species.isEmpty { return nil }
+        self.species = species
+    }
+}
+
+let someCreature = Animal(species: "Giraffe")
+// someCreature 类型是Animal？而不是Animal
+
+if let giraffe = someCreature {
+    print("An animal was initialized with a species of \(giraffe.species)")
+}
+
+let anonymousCreature = Animal(species: "")
+if anonymousCreature == nil {
+    print("create species failed")
+}
+
+// 枚举的可失败构造器
+enum TemperatureUnit: Character {
+    case Kelvin = "K", Celsius = "C", Fahrenheit = "F"
+    //    init?(sysmbol: Character) {
+    //        switch sysmbol {
+    //        case "K":
+    //            self = .Kelvin
+    //        case "C":
+    //            self = .Celsius
+    //        case "F":
+    //            self = .Fahrenheit
+    //        default:
+    //            return nil
+    //        }
+    //    }
+}
+
+let fahrenheitUnit = TemperatureUnit(rawValue: "F")
+if let item = fahrenheitUnit {
+    print("This is a defined temperature unit, so initialization succeeded")
+}
+let unknownUnit = TemperatureUnit(rawValue: "X")
+if unknownUnit == nil {
+    print("This is not a defined temperature unit, so initialization failed")
+}
+
+// 可失败构造器的传递
+class Product {
+    let name: String
+    init?(name: String) {
+        if name.isEmpty { return nil }
+        self.name = name
+    }
+}
+
+class CarItem: Product {
+    let quantity: Int
+    init?(name: String, quantity: Int) {
+        if quantity < 1 { return nil }
+        self.quantity = quantity
+        super.init(name: name)
+    }
+}
+
+if let twoSocks = CarItem(name: "sock", quantity: 2) {
+    print("Item: \(twoSocks.name), quantity: \(twoSocks.quantity)")
+}
+
+
+if let zeroShirts = CarItem(name: "shirt", quantity: 0) {
+    print("Item: \(zeroShirts.name), quantity: \(zeroShirts.quantity)")
+} else {
+    print("Unable to initialize zero shirts")
+}
+
+if let oneUnnamed = CarItem(name: "", quantity: 1) {
+    print("Item:\(oneUnnamed.name),quantity:\(oneUnnamed.quantity)")
+} else {
+    print("Unable to initialize")
+}
+
+class Document {
+    var name: String?
+    init() {}
+    init?(name: String) {
+        if name.isEmpty { return nil }
+        self.name = name
+    }
+}
+
+class AutomaticallyNamedDocument: Document {
+    override init() {
+        super.init()
+        self.name = "[Untitled]"
+    }
+    override init?(name: String) {
+        super.init()
+        if name.isEmpty {
+            self.name = "[Untitled]"
+        } else {
+            self.name = name
+        }
+    }
+}
+
+struct BlackjackCard {
+    enum Suit: Character {
+        case Spades = "♠", Hearts = "♡", Diamonds = "♢", Clubs = "♣"
+    }
+    
+    enum Rank: Int {
+        case Two = 2, Three, Four, Five, Six, Seven, Eight, Nine, Ten
+        case Jack, Queen, King, Ace
+        struct Value {
+            let first: Int, second: Int?
+        }
+        var values: Value {
+            switch self {
+            case .Ace:
+                return Value(first: 1, second: 11)
+            case .Jack, .Queen, .King:
+                return Value(first: 10, second: nil)
+            default:
+                return Value(first: self.rawValue, second: nil)
+            }
+        }
+    }
+    
+    // BlackjackCard 的属性和方法
+    let rank: Rank, suit: Suit
+    var description: String {
+        var output = "suit is \(suit.rawValue),"
+        output += " value is \(rank.values.first)"
+        if let second = rank.values.second {
+            output += " or \(second)"
+        }
+        return output
+    }
+}
+
+let heartAce = BlackjackCard(rank: .Ace, suit: .Hearts)
+print(heartAce.description)
+let heartSymbol = BlackjackCard.Suit.Hearts.rawValue
+
+// 扩展
+extension Double {
+    var km: Double { return self * 1_000.0 }
+    var m : Double { return self }
+    var cm: Double { return self / 100.0 }
+    var mm: Double { return self / 1_000.0 }
+    var ft: Double { return self / 3.28084 }
+}
+
+let oneInch = 25.4.mm
+print("One inch is \(oneInch) meters")
+
+let aMarathon = 42.km + 195.m
+print("A marathon is \(aMarathon.m) meters long")
+
+extension Int {
+    func repetitions(task: () -> Void) {
+        for _ in 0..<self {
+            task()
+        }
+    }
+    
+    mutating func square() {
+        self = self * self
+    }
+    
+    subscript(digitIndex: Int) -> Int {
+        var decimalBase = 1
+        for _ in 0..<digitIndex {
+            decimalBase *= 10
+        }
+        return (self / decimalBase) % 10
+    }
+}
+
+3.repetitions {
+    print("Hello")
+}
+
+var someInts = 3
+someInts.square()
+
+746381295[5]
+746381295[9]
+
+protocol RandomNumberGenerator {
+    func random() -> Double
+}
+
+class LinearCongruentialGenerator: RandomNumberGenerator {
+    var lastRandom = 42.0
+    let m = 139968.0
+    let a = 3877.0
+    let c = 29573.0
+    func random() -> Double {
+        lastRandom = ((lastRandom * a + c) % m)
+        return lastRandom / m
+    }
+}
+
+let generator = LinearCongruentialGenerator()
+print("Here's a random number: \(generator.random())")
+
+protocol Togglable {
+    mutating func toggle()
+}
+
+enum OnOffSwitch: Togglable {
+    case Off, On
+    mutating func toggle() {
+        switch self {
+        case Off:
+            self = On
+        case On:
+            self = Off
+        }
+    }
+}
+
+var lightSwitch = OnOffSwitch.Off
+lightSwitch.toggle()
+
+class Dice {
+    let side: Int
+    let generator: RandomNumberGenerator
+    init(side: Int, generator: RandomNumberGenerator) {
+        self.side = side
+        self.generator = generator
+    }
+    func roll() -> Int {
+        return Int(generator.random() * Double(side)) + 1
+    }
+}
+
+var d6 = Dice(side: 6, generator: LinearCongruentialGenerator())
+for _ in 1...5 {
+    print("Random dice roll is \(d6.roll())")
+}
+
+protocol DiceGame {
+    var dice: Dice { get }
+    func play()
+}
+
+protocol DiceGameDelegate {
+    func gameDidStart(game: DiceGame)
+    func game(game: DiceGame, didStartNewTurnWithDiceRoll diceRoll:Int)
+    func gameDidEnded(game: DiceGame)
+}
+
+class SnakeAndLadders: DiceGame {
+    let finalSquares = 25
+    let dice = Dice(side: 6, generator: LinearCongruentialGenerator())
+    var square = 0
+    var board: [Int]
+    init() {
+        board = [Int](count: finalSquares+1, repeatedValue: 0)
+        board[03] = +08; board[06] = +11; board[09] = +09; board[10] = +02
+        board[14] = -10; board[19] = -11; board[22] = -02; board[24] = -08
+    }
+    var delegate: DiceGameDelegate?
+    func play() {
+        square = 0
+        delegate?.gameDidStart(self)
+        gameLoop: while square != finalSquares {
+            let didRoll = dice.roll()
+            delegate?.game(self, didStartNewTurnWithDiceRoll: didRoll)
+            switch square+didRoll {
+            case finalSquares:
+                break gameLoop
+            case let newSquare where newSquare > finalSquares:
+                continue gameLoop
+            default:
+                square += didRoll
+                square += board[square]
+            }
+        }
+        delegate?.gameDidEnded(self)
+    }
+}
+
+class DiceGameTracker: DiceGameDelegate {
+    var numberOfTurns = 0
+    func gameDidStart(game: DiceGame) {
+        numberOfTurns = 0
+        if game is SnakeAndLadders {
+            print("Started a new game of Snakes and Ladders")
+        }
+        print("The game is using a \(game.dice.side)-sided dice")
+    }
+    func game(game: DiceGame, didStartNewTurnWithDiceRoll diceRoll: Int) {
+        numberOfTurns += 1
+        print("Rolled a \(diceRoll)")
+    }
+    func gameDidEnded(game: DiceGame) {
+        print("The game lasted for \(numberOfTurns) turns")
+    }
+}
+
+let tracker = DiceGameTracker()
+let game = SnakeAndLadders()
+game.delegate = tracker
+game.play()
+
+func swapTwoValues<T>(inout a: T, inout _ b: T) {
+    let tempA = a
+    a = b
+    b = tempA
+}
+
+var someInt = 3
+var anotherInt = 107
+swapTwoValues(&someInt, &anotherInt)
+
+var someString = "hello"
+var anotherString = "world"
+swapTwoValues(&someString, &anotherString)
+
+struct Stack<Element> {
+    var items = [Element]()
+    mutating func push(item: Element) {
+        items.append(item)
+    }
+    mutating func pop() -> Element {
+        return items.removeLast()
+    }
+}
+
+extension Stack {
+    var topItem: Element? {
+        return items.isEmpty ? nil : items[items.count - 1]
+    }
+}
+
+var stackOfStrings = Stack<String>()
+stackOfStrings.push("uno")
+stackOfStrings.push("dos")
+stackOfStrings.push("tres")
+stackOfStrings.push("cuatro")
+print(stackOfStrings.pop())
+print(stackOfStrings.pop())
+if let topItem = stackOfStrings.topItem {
+    print("The top item on the stack is \(topItem).")
+}
+
+func findIndex<T: Equatable>(of valueToFind: T, inArray array: [T]) -> Int? {
+    for (index, value) in array.enumerate() {
+        if value == valueToFind {
+            return index
+        }
+    }
+    return nil
+}
+
+let heheStrings = ["cat", "dog", "llama", "parakeet", "terrapin"]
+if let foundIndex = findIndex(of: "llama", inArray: heheStrings) {
+    print("The index of llama is \(foundIndex)")
+}
+
+protocol Container {
+    associatedtype ItemType
+    mutating func append(item: ItemType)
+    var count: Int { get }
+    subscript(i: Int) -> ItemType{ get }
+}
+
+struct IntStack: Container {
+    var items = [Int]()
+    mutating func push(item: Int) {
+        items.append(item)
+    }
+    mutating func pop() -> Int {
+        return items.removeLast()
+    }
+    
+    // conformance to the Container protocol
+    typealias ItemType = Int
+    mutating func append(item: ItemType) {
+        self.push(item)
+    }
+    var count: Int {
+        return items.count
+    }
+    subscript(i: Int) -> Int {
+        return items[i]
+    }
+}
 
 struct Person {
     let firstName: String
@@ -284,7 +802,7 @@ print("\(document.name)")
 // 通过闭包或者函数设置属性的默认值
 struct Checkerboard {
     let boardColors: [Bool] = {
-       var tempBoard = [Bool]()
+        var tempBoard = [Bool]()
         var isBlack = false
         for i in 1...8 {
             for j in 1...8 {
@@ -681,7 +1199,3 @@ for _ in 1...5 {
     counter.increment()
     print(counter.count)
 }
-
-
-
-
