@@ -15,6 +15,22 @@ extension SequenceType {
         // every element matches a predicate if no element doesn't match it:
         return !self.contains{ !predicate($0) }
     }
+    func myEnumerate() -> AnySequence<(Int, Generator.Element)> {
+        // Swift 在这个闭包中需要一个类型推断帮手
+        return AnySequence { _ -> AnyGenerator<(Int, Generator.Element)> in
+            // 新建一个新的计数器和生成器，并开始枚举
+            var i = 0
+            var g = self.generate()
+            // 在闭包中捕获这些变量并在一个新的生成器中返回他们
+            return AnyGenerator {
+                //当读到原始序列末尾时返回nil
+                guard let next = g.next() else { return nil }
+                let result = (i,next)
+                i += 1
+                return result
+            }
+        }
+    }
 }
 
 //The method above allows us to find all unique elements in a sequence while still maintaining the original order.
@@ -387,3 +403,92 @@ listStack.pop()
 
 //所有的push，pop操作只是改变了listStack，aList，bList对于整个链表节点的引用，而链表实际上并没有发生改变
 //但是基于ARC的内存管理模式，一旦某一节点不再有变量持有它时，它所占的内存区域就可以被释放。
+
+extension List: SequenceType, ArrayLiteralConvertible {
+    func generate() -> AnyGenerator<Element> {
+        // 声明一个变量用来捕捉self的状态，通过这个变量进行迭代
+        var current = self
+        return AnyGenerator {
+            // next()方法将会调用pop()，当列表为空时返回nil
+            current.pop()
+        }
+    }
+    
+    init(arrayLiteral elements: Element...) {
+        self = elements.reverse().reduce(.End) {$0.cons($1)}
+    }
+}
+
+let heheList: List = ["1","2","3"]
+for x in heheList {
+    print("\(x)", separator: ",", terminator: "")
+}
+
+heheList.joinWithSeparator("!")
+heheList.contains("2")
+heheList.flatMap {Int($0)}
+heheList.elementsEqual(["1","2","3"])
+
+/**
+ 隐藏list集合的实现细节,默认构造器ListIndex(node:tag:)并不能被用户访问
+ */
+private enum ListNode<Element> {
+    case End
+    indirect case Node(Element, next: ListNode<Element>)
+    
+    func cons(x: Element) -> ListNode<Element> {
+        // 每次cons都会使tag加1
+        return .Node(x, next: self)
+    }
+}
+
+public struct ListIndex<Element> {
+    private let node: ListNode<Element>
+    //在同一list中，如果两个index对应的tag值相同，那么他们的index也必定相同。
+    private let tag: Int
+}
+
+extension ListIndex: ForwardIndexType {
+    public func successor() -> ListIndex<Element> {
+        switch node {
+        case let .Node(_, next: next):
+            return ListIndex(node: next, tag: tag.predecessor())
+        case .End:
+            fatalError("Cannot increment endIndex")
+        }
+    }
+}
+
+public func ==<T>(lhs: ListIndex<T>, rhs: ListIndex<T>) -> Bool {
+    return lhs.tag == rhs.tag
+}
+
+// MARK - 这部分代码有问题
+
+//public struct NewList<Element>: CollectionType {
+//    // index的类型推断出来，但这可以使得剩下的代码更加明了
+//    public typealias index = ListNode<Element>
+//    
+//    public var startIndex: Index
+//    public var endIndex: Index
+//    
+//    public subscript(idx: Index) -> Element {
+//        switch idx.node {
+//        case .End: fatalError("Subscript out of range")
+//        case let .Node(x, _): return x
+//        }
+//    }
+//}
+//
+//extension NewList: ArrayLiteralConvertible {
+//    public init(arrayLiteral elements: Element...) {
+//        startIndex = ListIndex(node: elements.reverse().reduce(.End){
+//            $0.cons($1)
+//            },tag: elements.count)
+//        endIndex = ListIndex(node: .End, tag: 0)
+//    }
+//}
+//
+//let fuckList: NewList = ["One", "Two", "Three"]
+//fuckList.first
+//fuckList.indexOf("Two")
